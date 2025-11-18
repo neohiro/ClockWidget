@@ -7,6 +7,7 @@ import os
 import sys
 import threading
 import platform
+import ctypes # Required for the Win+D fix
 
 # --- NEW: Import winreg for Windows Startup ---
 try:
@@ -181,6 +182,38 @@ class DesktopClock:
 
 
         self.root.overrideredirect(True)
+
+        # --- FIX FOR WIN+D ---
+        # This block modifies the window style to be a "Tool Window" (WS_EX_TOOLWINDOW).
+        # Windows treats tool windows differently: they don't minimize when you press Win+D.
+        if platform.system() == "Windows":
+            self.root.update_idletasks() # Ensure window handle exists
+            try:
+                GWL_EXSTYLE = -20
+                WS_EX_APPWINDOW = 0x00040000
+                WS_EX_TOOLWINDOW = 0x00000080
+                
+                # Get the actual window handle (HWND)
+                hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
+                if hwnd == 0:
+                    hwnd = self.root.winfo_id()
+                
+                # Get current styles
+                style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                
+                # Modify styles: Remove AppWindow, Add ToolWindow
+                style = style & ~WS_EX_APPWINDOW
+                style = style | WS_EX_TOOLWINDOW
+                
+                ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+                
+                # Refresh the window to apply style changes
+                self.root.wm_withdraw()
+                self.root.wm_deiconify()
+            except Exception as e:
+                print(f"Could not set ToolWindow style (Win+D fix): {e}")
+        # --- END FIX ---
+
         self.root.config(bg=BACKGROUND_COLOR)
         try:
             self.root.wm_attributes("-transparentcolor", BACKGROUND_COLOR)
