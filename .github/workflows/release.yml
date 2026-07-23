@@ -45,7 +45,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           pyinstaller --noconfirm --onedir --windowed desktop-widget.PY
-          Compress-Archive -Path "dist\desktop-widget\*" -DestinationPath "ClockWidget-Windows.zip" -Force
+          Compress-Archive -Path "dist\desktop-widget" -DestinationPath "ClockWidget-Windows.zip" -Force
 
       - name: Build macOS Executable
         if: matrix.os == 'macos-latest'
